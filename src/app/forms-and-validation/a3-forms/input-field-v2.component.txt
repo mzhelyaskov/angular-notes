@@ -1,0 +1,35 @@
+import {InputField} from '@@app/dialogs/shared/send-email-dialog/field-wrapper/input-field';
+import {ValidationState} from '@@app/validation/validation.reducer';
+import {Component, forwardRef, Injector} from '@angular/core';
+import {ControlValueAccessor, NG_VALUE_ACCESSOR} from '@angular/forms';
+import {Store} from '@ngrx/store';
+
+const VALUE_ACCESSOR = {
+  provide: NG_VALUE_ACCESSOR,
+  useExisting: forwardRef(() => InputFieldV2Component),
+  multi: true
+};
+
+@Component({
+  selector: 'a3-input-v2',
+  template: `
+    <ng-template #controlTemplate>
+      <input type="text" class="form-control" placeholder="{{placeholder}}" [attr.name]="fieldName"
+             [attr.id]="fieldId" [attr.autocomplete]="autocomplete" [(ngModel)]="value"
+             [disabled]="disabled" (blur)="onBlur()" (focus)="onFocus()">
+    </ng-template>
+    <ng-container [ngSwitch]="template">
+      <a3-inline-field-wrapper *ngSwitchCase="'inline'" [control]="control"></a3-inline-field-wrapper>
+      <a3-flex-field-wrapper *ngSwitchCase="'flex'" [control]="control"></a3-flex-field-wrapper>
+      <a3-vertical-field-wrapper *ngSwitchCase="'vertical'" [control]="control"></a3-vertical-field-wrapper>
+      <a3-horizontal-field-wrapper *ngSwitchCase="'horizontal'" [control]="control"></a3-horizontal-field-wrapper>
+    </ng-container>
+  `,
+  providers: [VALUE_ACCESSOR]
+})
+export class InputFieldV2Component extends InputField implements ControlValueAccessor {
+
+  constructor(injector: Injector, store: Store<{ 'validation': ValidationState }>) {
+    super(injector, store);
+  }
+}

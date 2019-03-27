@@ -1,0 +1,7 @@
+<form [formGroup]="myForm">
+  <app-form-field class="example-full-width">
+    <input matInput placeholder="What is your name" [formControl]="myForm.controls['name']"/>
+    <div *ngIf="myForm.controls['name'].hasError('required')">Required!</div>
+    <div *ngIf="myForm.controls['name'].hasError('maxlength')">Too long!</div>
+  </app-form-field>
+</form>

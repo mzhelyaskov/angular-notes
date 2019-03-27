@@ -1,0 +1,50 @@
+import {FieldWrapper} from '@@app/dialogs/shared/send-email-dialog/field-wrapper/field-wrapper';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
+
+@Component({
+  selector: 'a3-horizontal-field-wrapper',
+  template: `
+    <div class="form-horizontal">
+      <div class="form-group {{controlStatusStyle}}">
+        <label *ngIf="control.label" [attr.for]="control.fieldId"
+               class="{{labelCol}} {{labelOffset}} control-label">{{control.label}}
+        </label>
+        <div class="{{fieldCol}} {{colOffset}}">
+          <ng-container [ngTemplateOutlet]="control.templateRef"></ng-container>
+          <span *ngIf="hasError" class="help-block">{{control.errorMessage}}</span>
+        </div>
+      </div>
+    </div>
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class HorizontalFieldWrapperComponent extends FieldWrapper {
+
+  ngOnInit() {
+    super.onInit();
+    this.initStyles();
+  }
+
+  private initStyles() {
+    const sizeRatio = this.control.getSizeRatio;
+    if (!sizeRatio) {
+      return;
+    }
+    this.setCustomLabelAndColumnSize('sm');
+    this.setCustomLabelAndColumnSize('md');
+    this.setCustomLabelAndColumnSize('lg');
+  }
+
+  private setCustomLabelAndColumnSize(colType: string) {
+    const sizeRatio: string = this.control[colType];
+    if (sizeRatio) {
+      if (sizeRatio.includes(':')) {
+        const sizeParts = sizeRatio.split(':');
+        this.labelCol += ` col-${colType}-${sizeParts[0]}`;
+        this.fieldCol += ` col-${colType}-${sizeParts[1]}`;
+      } else {
+        this.fieldCol += ` col-${colType}-${sizeRatio}`;
+      }
+    }
+  }
+}

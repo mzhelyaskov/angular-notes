@@ -1,0 +1,50 @@
+import {A3Control} from '@@app/dialogs/shared/send-email-dialog/field-wrapper/a3.control';
+import {ValidationType} from '@@app/shared-data/validation/local-error.model';
+import {Input, OnInit} from '@angular/core';
+
+export abstract class FieldWrapper implements OnInit {
+
+  @Input('control') set onControlChange(control: A3Control) {
+    console.log('control changed...');
+    this.control = control;
+    this.hasError = !!(control.dirty && control.errorMessage);
+    this.controlStatusStyle = FieldWrapper.getControlStatusStyle(control);
+  };
+
+  control: A3Control;
+  controlStatusStyle = '';
+  hasError = false;
+  labelCol = 'col-sm-3';
+  fieldCol = 'col-sm-9';
+  labelOffset = '';
+  colOffset = '';
+  offset = '';
+
+  abstract ngOnInit();
+
+  onInit() {
+    this.initColOffset();
+  }
+
+  private initColOffset() {
+    const offsetSize = this.control.smOffset || this.control.mdOffset || this.control.lgOffset;
+    if (offsetSize) {
+      const offsetType = this.control.lgOffset ? 'lg' : this.control.mdOffset ? 'md' : 'sm';
+      this.offset = `col-${offsetType}-offset-${offsetSize}`;
+      if (this.control.label) {
+        this.labelOffset = this.offset;
+      } else {
+        this.colOffset = this.offset;
+      }
+    }
+  }
+
+  private static getControlStatusStyle(control: A3Control) {
+    if (control.dirty && control.errorType === ValidationType.ERROR) {
+      return 'has-error';
+    }
+    if (control.dirty && control.errorType === ValidationType.WARNING) {
+      return 'has-warning';
+    }
+  }
+}

@@ -1,0 +1,51 @@
+import {FieldWrapper} from '@@app/dialogs/shared/send-email-dialog/field-wrapper/field-wrapper';
+import {Component, Injector, ViewEncapsulation} from '@angular/core';
+
+@Component({
+  selector: 'a3-flex-field-wrapper',
+  template: `
+    <div class="row">
+      <div class="{{flexCol}} {{offset}}">
+        <div class="form-group flex-container has-error">
+          <label *ngIf="config.label" [attr.for]="config.fieldId" class="flex-label">{{config.label}}</label>
+          <div class="flex-control-container">
+            <ng-container [ngTemplateOutlet]="config.templateRef"></ng-container>
+            <span *ngIf="invalid" class="help-block">{{getErrorMessage()}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+  encapsulation: ViewEncapsulation.None,
+  styles: [`
+    .flex-container {
+      display: flex;
+    }
+
+    .flex-container .flex-control-container {
+      width: 100%;
+    }
+
+    .flex-label {
+      padding-top: 6px;
+      padding-right: 8px;
+    }
+  `]
+})
+export class FlexFieldWrapperComponent extends FieldWrapper {
+
+  flexCol = 'col-sm-12';
+
+  constructor(injector: Injector) {
+    super(injector);
+  }
+
+  ngOnInit() {
+    super.onInit();
+    const sizeRatio = this.control.getSizeRatio;
+    if (sizeRatio) {
+      const type = this.control.labelAndControlType;
+      this.flexCol = `col-${type}-${sizeRatio}`;
+    }
+  }
+}

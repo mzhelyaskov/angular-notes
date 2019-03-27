@@ -1,0 +1,181 @@
+import {A3ErrorConverter} from '@@app/dialogs/shared/send-email-dialog/a3-error-converter';
+import {A3Control} from '@@app/dialogs/shared/send-email-dialog/field-wrapper/a3.control';
+import {ValidationType} from '@@app/shared-data/validation/local-error.model';
+import {ValidationMessagePipe, ValidationPipeObject} from '@@app/shared-pipes/pipes/ValidationMessagePipe';
+import {UuidUtils} from '@@app/utils/uuidUtils';
+import {DirtyField, RemoveDirtyField, RemoveError, SetLocalErrors} from '@@app/validation/validation.actions';
+import {ValidationState} from '@@app/validation/validation.reducer';
+import {EventEmitter, Injector, Input, OnInit, Output, TemplateRef, ViewChild} from '@angular/core';
+import {NgControl} from '@angular/forms';
+import {select, Store} from '@ngrx/store';
+import {combineLatest} from 'rxjs';
+import {map} from 'rxjs/operators';
+
+const noop = () => {};
+
+export abstract class InputField implements OnInit {
+
+  @ViewChild('controlTemplate') templateRef: TemplateRef<any>;
+  @Input() template = 'horizontal';
+  @Input() label = '';
+  @Input() placeholder = '';
+  @Input() autocomplete: 'on' | 'off' = 'off';
+  @Input() disabled = false;
+  @Input() sm: string;
+  @Input() md: string;
+  @Input() lg: string;
+  @Input() smOffset: string;
+  @Input() mdOffset: string;
+  @Input() lgOffset: string;
+
+  @Input('name') set onNameChange(fieldName: string) {
+    this.fieldName = fieldName;
+    this.fieldGroupName = InputField.extractFieldGroupName(fieldName);
+  };
+
+  //@Output() change: EventEmitter<any> = new EventEmitter<any>();
+  @Output() blur: EventEmitter<any> = new EventEmitter<any>();
+  @Output() focus: EventEmitter<any> = new EventEmitter<any>();
+
+  fieldId = UuidUtils.v4();
+  control = new A3Control();
+  fieldName = '';
+  private fieldGroupName = '';
+  private validationMessagePipe: ValidationMessagePipe = this.injector.get(ValidationMessagePipe);
+  private innerValue: any = '';
+  private onTouched: () => void = noop;
+  private onChange: (_: any) => void = noop;
+
+  get value(): any {
+    return this.innerValue;
+  };
+
+  set value(val: any) {
+    if (val !== this.innerValue) {
+      this.innerValue = val;
+      this.onChange(val);
+      this.onTouched();
+    }
+  }
+
+  protected constructor(private injector: Injector,
+                        private store: Store<{ 'validation': ValidationState }>) {
+  }
+
+  ngOnInit() {
+    const ngControl = this.injector.get(NgControl);
+    this.initPlaceholder();
+    this.control.fieldId = this.fieldId;
+    this.control.name = this.fieldName;
+    this.control.label = this.label;
+    this.control.sm = this.sm;
+    this.control.md = this.md;
+    this.control.lg = this.lg;
+    this.control.smOffset = this.smOffset;
+    this.control.mdOffset = this.mdOffset;
+    this.control.lgOffset = this.lgOffset;
+    this.control.templateRef = this.templateRef;
+    this.control.ngControl = ngControl;
+    this.control.errorMessage = '';
+    this.control.dirty = false;
+    this.observeControlErrorsAndUpdateStore(ngControl);
+    this.observeViewControlStatus();
+  }
+
+  registerOnChange(fn: any): void {
+    this.onChange = fn;
+  }
+
+  registerOnTouched(fn: any): void {
+    this.onTouched = fn;
+  }
+
+  setDisabledState(isDisabled: boolean): void {}
+
+  writeValue(value: string): void {
+    if (value === this.innerValue) {
+      return;
+    }
+    this.innerValue = value;
+  }
+
+  onBlur() {
+    this.onTouched();
+    this.store.dispatch(new DirtyField(this.fieldName, this.fieldGroupName));
+    this.blur.emit(this.value);
+  }
+
+  onFocus() {
+    this.store.dispatch(new RemoveDirtyField(this.fieldName, this.fieldGroupName));
+    this.focus.emit(this.value);
+  }
+
+  private observeViewControlStatus() {
+    combineLatest(this.getLocalErrors$(), this.isDirty$()).subscribe(([localError, dirty]) => {
+      this.control.dirty = dirty;
+      if (localError) {
+        this.control.errorType = localError.code.type;
+        this.control.errorMessage = this.validationMessagePipe.transform(localError);
+      } else {
+        this.control.errorType = null;
+        this.control.errorMessage = '';
+      }
+      this.control = {...this.control};
+    });
+  }
+
+  private isDirty$() {
+    return this.store.pipe(
+      select(s => s.validation.dirtyFields),
+      map(dirtyFields => dirtyFields[this.fieldGroupName]),
+      map(fieldGroup => fieldGroup ? fieldGroup.includes(this.fieldName) : false)
+    );
+  }
+
+  private getLocalErrors$() {
+    return this.store.pipe(
+      select(s => s.validation.localErrors),
+      map(errors => errors ? errors[this.fieldName] : null),
+      map(error => error && error.codes ? error.codes : []),
+      map(codes => this.toValidationPipeObject(this.fieldName, codes)),
+    );
+  }
+
+  private observeControlErrorsAndUpdateStore(ngControl) {
+    ngControl.statusChanges.subscribe(status => {
+      const errorKeys = InputField.getErrorKeys(ngControl.errors);
+      if (errorKeys.length) {
+        const firstProperty = errorKeys[0];
+        const localError = A3ErrorConverter.toA3Error(ngControl.errors, this.fieldName);
+        this.store.dispatch(new SetLocalErrors({[this.fieldName]: localError}));
+      } else {
+        this.store.dispatch(new RemoveError(this.fieldName));
+      }
+    });
+  }
+
+  private static getErrorKeys(errors): string[] {
+    if (errors) {
+      return Object.keys(errors);
+    }
+    return [];
+  }
+
+  private initPlaceholder() {
+    this.placeholder = this.placeholder || this.label.slice(0, -1);
+  }
+
+  private toValidationPipeObject(fieldName, codes): ValidationPipeObject | null {
+    const fieldNamePrefix = fieldName.slice(0, fieldName.lastIndexOf('.'));
+    const errorCodes = codes.filter(code => code.type === ValidationType.ERROR);
+    return errorCodes.length ? new ValidationPipeObject(fieldNamePrefix, errorCodes[0]) : null;
+  }
+
+  private static extractFieldGroupName(fieldName: string) {
+    const nameParts = fieldName.split('.');
+    if (nameParts.length) {
+      return nameParts[nameParts.length - 1];
+    }
+    return '';
+  }
+}

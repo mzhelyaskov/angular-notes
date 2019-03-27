@@ -1,0 +1,9 @@
+<div class="col-sm-6 col-sm-offset-2">
+  <div class="form-group flex-container has-error">
+    <label *ngIf="config.label" [attr.for]="config.fieldId" class="flex-label">{{config.label}}</label>
+    <div class="flex-control-container">
+      <ng-container [ngTemplateOutlet]="config.templateRef"></ng-container>
+      <span *ngIf="invalid" class="help-block">{{getErrorMessage()}}</span>
+    </div>
+  </div>
+</div>

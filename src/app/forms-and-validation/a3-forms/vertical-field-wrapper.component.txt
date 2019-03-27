@@ -1,0 +1,23 @@
+import {FieldWrapper} from '@@app/dialogs/shared/send-email-dialog/field-wrapper/field-wrapper';
+import {Component, Injector} from '@angular/core';
+
+@Component({
+  selector: 'a3-vertical-field-wrapper',
+  template: `
+    <div class="form-group has-error">
+      <label *ngIf="config.label" [attr.for]="config.fieldId">{{config.label}}</label>
+      <ng-container [ngTemplateOutlet]="config.templateRef"></ng-container>
+      <span *ngIf="invalid" class="help-block">{{getErrorMessage()}}</span>
+    </div>
+  `
+})
+export class VerticalFieldWrapperComponent extends FieldWrapper {
+
+  constructor(injector: Injector) {
+    super(injector);
+  }
+
+  ngOnInit() {
+    super.onInit();
+  }
+}

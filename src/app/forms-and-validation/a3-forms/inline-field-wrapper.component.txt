@@ -1,0 +1,34 @@
+import {FieldWrapper} from '@@app/dialogs/shared/send-email-dialog/field-wrapper/field-wrapper';
+import {Component} from '@angular/core';
+
+@Component({
+  selector: 'a3-inline-field-wrapper',
+  template: `
+    <div class="form-inline">
+      <div class="form-group has-error">
+        <label *ngIf="control.label" [attr.for]="control.fieldId" class="inline-label">{{control.label}}</label>
+        <div class="control-with-help-block">
+          <ng-container [ngTemplateOutlet]="control.templateRef"></ng-container>
+          <span class="help-block">{{getErrorMessage()}}</span>
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    .inline-label {
+      vertical-align: top;
+      padding-right: 8px;
+      line-height: 30px;
+    }
+    
+    .control-with-help-block {
+      display: inline-block;
+    }
+  `]
+})
+export class InlineFieldWrapperComponent extends FieldWrapper {
+
+  ngOnInit() {
+    super.onInit();
+  }
+}
